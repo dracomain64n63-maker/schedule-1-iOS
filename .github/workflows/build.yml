@@ -28,13 +28,33 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
+            GENERATE_INFOPLIST_FILE=YES \
+            INFOPLIST_KEY_CFBundleIdentifier=com.example.schedule1 \
+            INFOPLIST_KEY_CFBundleExecutable=Schedule1 \
+            INFOPLIST_KEY_CFBundlePackageType=APPL \
+            INFOPLIST_KEY_CFBundleVersion=1 \
+            INFOPLIST_KEY_CFBundleShortVersionString=1.0 \
+            INFOPLIST_KEY_CFBundleName=Schedule1 \
             build
+
+      - name: Verify app metadata
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Schedule1.app"
+          PLIST="$APP_PATH/Info.plist"
+
+          test -d "$APP_PATH"
+          test -f "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST"
+
+          test -f "$APP_PATH/Schedule1"
 
       - name: Package unsigned IPA
         run: |
           APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Schedule1.app"
-
-          test -d "$APP_PATH"
 
           mkdir -p build/Payload
           cp -R "$APP_PATH" build/Payload/
