@@ -48,29 +48,25 @@ jobs:
             local key="$1"
             local value="$2"
 
-            if /usr/libexec/PlistBuddy -c "Set :$key $value" "$PLIST" 2>/dev/null; then
+            if /usr/libexec/PlistBuddy -c "Set :$key '$value'" "$PLIST" 2>/dev/null; then
               echo "Updated $key"
             else
-              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST"
+              /usr/libexec/PlistBuddy -c "Add :$key string '$value'" "$PLIST"
               echo "Added $key"
             fi
           }
 
-          set_or_add CFBundleIdentifier com.example.schedule1
-          set_or_add CFBundleExecutable Schedule1
-          set_or_add CFBundlePackageType APPL
-          set_or_add CFBundleVersion 1
-          set_or_add CFBundleShortVersionString 1.0
-          set_or_add CFBundleName Schedule1
+          set_or_add CFBundleIdentifier "com.example.schedule1"
+          set_or_add CFBundleExecutable "Schedule1"
+          set_or_add CFBundlePackageType "APPL"
+          set_or_add CFBundleVersion "1"
+          set_or_add CFBundleShortVersionString "1.0"
+          set_or_add CFBundleName "Schedule1"
           set_or_add CFBundleDisplayName "Schedule 1"
 
-          echo "Verifying app metadata..."
+          echo "Verifying metadata..."
 
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print" "$PLIST"
 
       - name: Package unsigned IPA
         run: |
