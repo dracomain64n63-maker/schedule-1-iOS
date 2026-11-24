@@ -1,62 +1,57 @@
-# Schedule 1 — iOS Prototype
+# Schedule 1 — Unreal Engine Mobile + Controller Starter
 
-A private, personal-use first-person 3D business-simulation prototype for iOS, built with Unity 6.
+**Engine target:** Unreal Engine 5.8.
 
-## Included
-- Unity project folder structure
-- First-person controller with keyboard/mouse support in Editor
-- Basic mobile look and movement input hooks
-- Interactable object framework
-- Simple interaction raycast
-- Prototype game manager
-- GitHub Actions workflow that exports an iOS Xcode project on a macOS runner
+This is a C++ starter project for a landscape-oriented mobile first-person prototype. It is not a finished game or prebuilt IPA.
 
-This is a starter prototype project. It does not include proprietary game code, maps, characters, or assets from any existing game.
+## Added in this revision
+- Original boot menu with Play, Settings placeholder, and Quit
+- Controller connection polling
+- Mobile virtual controls hidden when a controller is connected
+- Touching the screen re-enables mobile controls; subsequent gamepad input hides them again
+- Green on-screen controller-connected indicator
+- PlayStation-compatible generic gamepad mappings
+- Reusable alternating red/blue police emergency-light actor
 
-## Requirements
-- Unity 6 (install the iOS Build Support module)
-- A GitHub repository
-- A Unity license suitable for CI
-- For a signed IPA: an Apple Developer signing certificate and provisioning profile
+## Controls
 
-## Open in Unity
-1. Download and extract this repository.
-2. In Unity Hub, choose **Add > Add project from disk** and select this folder.
-3. Open with a Unity 6 editor version.
-4. Create a scene named `Main` under `Assets/Scenes`.
-5. Add a Plane, a few Cube buildings, and a Capsule for the player.
-6. Add a CharacterController component to the player Capsule.
-7. Add `FirstPersonController.cs` to the player.
-8. Add a Camera as a child of the player at local position `(0, 1.6, 0)` and assign it to the controller's `playerCamera` field.
-9. Add `PrototypeGameManager.cs` to an empty GameObject.
-10. Save the scene as `Assets/Scenes/Main.unity` and add it to Build Settings.
+### Mobile
+- Left virtual joystick: move
+- Right virtual joystick: look
+- Touch screen: re-enable virtual controls while a controller is connected
+- Landscape orientation
 
-## Input
-- Editor: WASD to move, mouse to look, E to interact.
-- Mobile: connect on-screen joystick/look UI to `SetMoveInput` and `SetLookInput` on `FirstPersonController`; call `TryInteract` from an interaction button.
+### Controller
+- Left stick: move
+- Right stick: look
+- Cross / A: jump
+- Square / X: interact
+- Other standard gamepad inputs are recognized as controller activity
 
-The included controller intentionally keeps mobile UI minimal so it can be designed for the actual target screen later.
+### Editor keyboard and mouse
+- W / A / S / D: move
+- Mouse: look
+- Space: jump
+- E: interact
 
-## GitHub Actions setup
-Add a repository secret named `UNITY_LICENSE` containing the Unity license XML. The workflow exports an Xcode project and uploads it as an artifact.
+## Setup and test
+1. Install Unreal Engine 5.8 and its C++ toolchain on a supported development computer.
+2. Extract the ZIP and open `Schedule1.uproject`.
+3. Let Unreal generate project files and compile the C++ module.
+4. Create a level named `Prototype` and save it under `Content/Maps/`.
+5. In **Edit → Project Settings → Maps & Modes**, set `Prototype` as both Editor Startup Map and Game Default Map.
+6. Add a floor and a few cubes. Ensure interactable cubes block the Visibility trace channel.
+7. Add an instance of `Schedule1PoliceLights` to a level or attach its components to a police vehicle blueprint.
+8. Test mobile touch input and a connected controller on target hardware.
 
-The first workflow does **not** claim to produce a signed IPA. An iOS Xcode project must be signed with an Apple certificate and provisioning profile before it can become an installable IPA. We can add that signing stage after the Unity export succeeds.
+## Important limitations
+- This archive contains starter source and configuration only. It does not include Unreal Engine, art assets, a finished city, inventory/economy/save systems, a finished settings screen, or packaged iOS output.
+- The boot menu is an original simple prototype menu, not a recreation of another game's exact interface.
+- The Settings button is currently a placeholder.
+- Controller connection detection and touch-interface switching must be compiled and tested on the target Unreal version/device. Controller hardware lighting cannot be changed by the game; the green indicator is an in-game status label.
+- The police-light actor only supplies alternating red/blue light effects; it is not yet connected to a police AI or alert system.
+- iOS packaging must be performed with a correctly configured Unreal iOS toolchain. This archive does not include a one-click IPA build workflow.
 
-## Project settings to check
-In Unity:
-- File > Build Settings > iOS > Switch Platform
-- Player Settings > Other Settings > Bundle Identifier: set a unique identifier
-- Set a supported iOS minimum version
-- Set orientation and icon later
-
-## Prototype milestone
-The first milestone is a small test environment with:
-- First-person walking and looking
-- A small street and several placeholder buildings
-- One interactable business terminal
-- A basic money display
-- Peaceful mode as the default (no police system)
-
-
-## Project title
-The project display name is **Schedule 1**. The repository folder can be named `schedule-1-ios`.
+## Project identity
+Project name: Schedule 1
+Project folder: Schedule1
