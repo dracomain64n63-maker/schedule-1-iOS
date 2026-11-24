@@ -6,22 +6,27 @@ import QuartzCore
 
 struct GameView: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("lookSensitivity") private var lookSensitivity = 0.0022
+    @AppStorage("moveSpeed") private var moveSpeedSetting = 3.2
+    @AppStorage("joystickScale") private var joystickScale = 1.0
+    @AppStorage("showTouchControls") private var showTouchControlsSetting = true
+
     @State private var playerPosition = SIMD3<Float>(0, 1.6, 5)
     @State private var yaw: Float = 0
     @State private var pitch: Float = 0
     @State private var cash = 250
     @State private var message = "Explore the neighborhood. Find the green-and-white RV."
-    @State private var showTouchControls = true
     @State private var controllerConnected = false
     @State private var lastDragTranslation = CGSize.zero
+    @State private var joystickVector = CGSize.zero
     @State private var activeController: GCController?
     @State private var observerTokens: [NSObjectProtocol] = []
     @State private var lastControllerInputTime = CACurrentMediaTime()
     @State private var hasAcquiredProperty = false
 
-    private let touchLookSensitivity: Float = 0.0022
-    private let controllerLookSensitivity: Float = 1.8
-    private let movementSpeed: Float = 3.2
+    private var movementSpeed: Float { Float(moveSpeedSetting) }
+    private var touchLookSensitivity: Float { Float(lookSensitivity) }
+    private let controllerLookSensitivity: Float = 1.65
 
     var body: some View {
         ZStack {
@@ -29,7 +34,7 @@ struct GameView: View {
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .gesture(
-                    DragGesture(minimumDistance: 2)
+                    DragGesture(minimumDistance: 3)
                         .onChanged { value in
                             let dx = value.translation.width - lastDragTranslation.width
                             let dy = value.translation.height - lastDragTranslation.height
@@ -76,9 +81,12 @@ struct GameView: View {
                     .background(.black.opacity(0.7), in: Capsule())
                     .padding(.bottom, 12)
 
-                if showTouchControls {
+                if showTouchControlsSetting && !controllerConnected {
                     HStack(alignment: .bottom) {
-                        movementPad
+                        VirtualJoystick(scale: joystickScale) { vector in
+                            joystickVector = vector
+                            movePlayer(strafe: Float(vector.width), forward: Float(-vector.height), duration: 0.035)
+                        }
                         Spacer()
                         Button(action: interact) {
                             Text("INTERACT")
@@ -100,104 +108,70 @@ struct GameView: View {
         .onDisappear(perform: disconnectControllerHandlers)
     }
 
-    private var movementPad: some View {
-        VStack(spacing: 5) {
-            moveButton("arrow.up", x: 0, z: -1)
-            HStack(spacing: 5) {
-                moveButton("arrow.left", x: -1, z: 0)
-                moveButton("arrow.down", x: 0, z: 1)
-                moveButton("arrow.right", x: 1, z: 0)
-            }
-        }
-    }
-
-    private func moveButton(_ symbol: String, x: Float, z: Float) -> some View {
-        Button {
-            movePlayer(strafe: x, forward: -z, duration: 0.22)
-        } label: {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .bold))
-                .frame(width: 44, height: 44)
-                .background(.black.opacity(0.65), in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
     private func movePlayer(strafe: Float, forward: Float, duration: Float) {
-        let forwardVector = SIMD3<Float>(-sin(yaw), 0, -cos(yaw))
-        let rightVector = SIMD3<Float>(cos(yaw), 0, -sin(yaw))
-        let direction = rightVector * strafe + forwardVector * forward
+        let fwd = SIMD3<Float>(-sin(yaw), 0, -cos(yaw))
+        let right = SIMD3<Float>(cos(yaw), 0, -sin(yaw))
+        let direction = right * strafe + fwd * forward
         let length = simd_length(direction)
-        guard length > 0 else { return }
+        guard length > 0.001 else { return }
         playerPosition += (direction / length) * movementSpeed * duration
     }
 
     private func configureController() {
         GCController.shouldMonitorBackgroundEvents = true
-        let connectedToken = NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { notification in
+        let connected = NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { notification in
             guard let controller = notification.object as? GCController else { return }
             attach(controller)
         }
-        let disconnectedToken = NotificationCenter.default.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { notification in
-            guard let disconnected = notification.object as? GCController else { return }
-            if activeController === disconnected {
+        let disconnected = NotificationCenter.default.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { notification in
+            guard let controller = notification.object as? GCController else { return }
+            if activeController === controller {
                 activeController = nil
                 controllerConnected = false
-                showTouchControls = true
                 message = "Controller disconnected. Touch controls restored."
             }
         }
-        observerTokens = [connectedToken, disconnectedToken]
-        if let controller = GCController.controllers().first {
-            attach(controller)
-        }
+        observerTokens = [connected, disconnected]
+        if let controller = GCController.controllers().first { attach(controller) }
     }
 
     private func attach(_ controller: GCController) {
-        guard let gamepad = controller.extendedGamepad else {
-            message = "This controller profile isn't supported. Use an Xbox, PlayStation, or MFi controller with a standard gamepad layout."
+        guard let pad = controller.extendedGamepad else {
+            message = "This controller profile is not supported."
             return
         }
         activeController = controller
         controllerConnected = true
-        showTouchControls = false
         lastControllerInputTime = CACurrentMediaTime()
-        gamepad.valueChangedHandler = { pad, _ in
+        pad.valueChangedHandler = { gamepad, _ in
             let now = CACurrentMediaTime()
             let delta = Float(min(0.05, max(0.001, now - lastControllerInputTime)))
             lastControllerInputTime = now
             DispatchQueue.main.async {
-                let leftX = pad.leftThumbstick.xAxis.value
-                let leftY = pad.leftThumbstick.yAxis.value
-                let rightX = pad.rightThumbstick.xAxis.value
-                let rightY = pad.rightThumbstick.yAxis.value
-                let deadZone: Float = 0.13
-                let lx = abs(leftX) > deadZone ? leftX : 0
-                let ly = abs(leftY) > deadZone ? leftY : 0
-                let rx = abs(rightX) > deadZone ? rightX : 0
-                let ry = abs(rightY) > deadZone ? rightY : 0
-                if lx != 0 || ly != 0 {
-                    movePlayer(strafe: lx, forward: ly, duration: delta)
-                }
+                let dead: Float = 0.13
+                let x = abs(gamepad.leftThumbstick.xAxis.value) > dead ? gamepad.leftThumbstick.xAxis.value : 0
+                let y = abs(gamepad.leftThumbstick.yAxis.value) > dead ? gamepad.leftThumbstick.yAxis.value : 0
+                let rx = abs(gamepad.rightThumbstick.xAxis.value) > dead ? gamepad.rightThumbstick.xAxis.value : 0
+                let ry = abs(gamepad.rightThumbstick.yAxis.value) > dead ? gamepad.rightThumbstick.yAxis.value : 0
+                if x != 0 || y != 0 { movePlayer(strafe: x, forward: y, duration: delta) }
                 yaw -= rx * controllerLookSensitivity * delta
                 pitch = max(-0.85, min(0.85, pitch + ry * controllerLookSensitivity * delta))
             }
         }
-        gamepad.buttonA.pressedChangedHandler = { _, _, pressed in
+        pad.buttonA.pressedChangedHandler = { _, _, pressed in
             if pressed { DispatchQueue.main.async { interact() } }
         }
-        gamepad.buttonMenu.pressedChangedHandler = { _, _, pressed in
+        pad.buttonMenu.pressedChangedHandler = { _, _, pressed in
             if pressed { DispatchQueue.main.async { dismiss() } }
         }
-        message = "Controller connected. Left stick: move · Right stick: look · A: interact · Menu: pause."
+        message = "Controller connected. Left stick: move · Right stick: look · A: interact."
     }
 
     private func disconnectControllerHandlers() {
         activeController?.extendedGamepad?.valueChangedHandler = nil
         activeController?.extendedGamepad?.buttonA.pressedChangedHandler = nil
         activeController?.extendedGamepad?.buttonMenu.pressedChangedHandler = nil
-        observerTokens.forEach(NotificationCenter.default.removeObserver)
+        observerTokens.forEach { NotificationCenter.default.removeObserver($0) }
         observerTokens.removeAll()
     }
 
@@ -209,9 +183,49 @@ struct GameView: View {
         if cash >= 200 {
             cash -= 200
             hasAcquiredProperty = true
-            message = "Starter property acquired. This is a visual prototype; business systems aren't implemented yet."
+            message = "Starter property acquired. Business systems are not implemented yet."
         } else {
             message = "Not enough cash to acquire the starter property."
         }
+    }
+}
+
+private struct VirtualJoystick: View {
+    let scale: Double
+    let onMove: (CGSize) -> Void
+    @State private var knob = CGSize.zero
+    private let baseSize: CGFloat = 132
+    private var size: CGFloat { baseSize * CGFloat(min(1.5, max(0.7, scale))) }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(.black.opacity(0.48))
+                .overlay(Circle().stroke(.white.opacity(0.38), lineWidth: 1.5))
+                .frame(width: size, height: size)
+            Circle()
+                .fill(.white.opacity(0.18))
+                .overlay(Circle().stroke(.white.opacity(0.65), lineWidth: 1))
+                .frame(width: size * 0.39, height: size * 0.39)
+                .offset(knob)
+        }
+        .frame(width: size, height: size)
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let radius = size * 0.34
+                    let x = value.translation.width
+                    let y = value.translation.height
+                    let length = sqrt(x * x + y * y)
+                    let factor = length > radius ? radius / length : 1
+                    knob = CGSize(width: x * factor, height: y * factor)
+                    onMove(CGSize(width: knob.width / radius, height: knob.height / radius))
+                }
+                .onEnded { _ in
+                    knob = .zero
+                    onMove(.zero)
+                }
+        )
     }
 }

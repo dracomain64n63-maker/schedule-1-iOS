@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 @main
@@ -8,80 +7,85 @@ struct Schedule1App: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if showSettings {
-                    SettingsView {
-                        showSettings = false
-                    }
-                } else {
-                    MainMenuView(
-                        onPlay: {
-                            startGame = true
-                        },
-                        onSettings: {
-                            showSettings = true
-                        }
-                    )
-                }
-            }
+            MainMenuView(
+                onPlay: { startGame = true },
+                onSettings: { showSettings = true }
+            )
             .preferredColorScheme(.dark)
             .fullScreenCover(isPresented: $startGame) {
                 GameView()
+            }
+            .sheet(isPresented: $showSettings) {
+                GameSettingsView()
+                    .preferredColorScheme(.dark)
             }
         }
     }
 }
 
-private struct SettingsView: View {
-    let onBack: () -> Void
+private struct GameSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("lookSensitivity") private var lookSensitivity = 0.0022
+    @AppStorage("moveSpeed") private var moveSpeed = 3.2
+    @AppStorage("joystickScale") private var joystickScale = 1.0
+    @AppStorage("showTouchControls") private var showTouchControls = true
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                Text("SETTINGS")
-                    .font(.system(size: 28, weight: .bold))
-                    .tracking(3)
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("CONTROLS")
-                        .font(.headline)
-
-                    Text("Touch Controls")
-                    Text("• Use the directional pad to move.")
-                    Text("• Drag across the screen to look around.")
-                    Text("• Tap INTERACT to interact with objects.")
-
-                    Divider()
-
-                    Text("CONTROLLER")
-                        .font(.headline)
-
-                    Text("• Left stick: Move")
-                    Text("• Right stick: Look around")
-                    Text("• A: Interact")
-                    Text("• Menu: Pause")
+        NavigationStack {
+            Form {
+                Section("Camera") {
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Look sensitivity")
+                            Spacer()
+                            Text(String(format: "%.4f", lookSensitivity))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $lookSensitivity, in: 0.0008...0.006, step: 0.0002)
+                    }
                 }
-                .font(.system(size: 14))
-                .foregroundStyle(.white)
-                .padding(20)
-                .frame(maxWidth: 420, alignment: .leading)
-                .background(.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                Button(action: onBack) {
-                    Text("BACK")
-                        .font(.system(size: 14, weight: .bold))
-                        .tracking(2)
-                        .frame(maxWidth: 220)
-                        .padding()
-                        .background(.white)
-                        .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                Section("Movement") {
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Movement speed")
+                            Spacer()
+                            Text(String(format: "%.1f", moveSpeed))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $moveSpeed, in: 1.5...7.0, step: 0.1)
+                    }
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Joystick size")
+                            Spacer()
+                            Text("\(Int(joystickScale * 100))%")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $joystickScale, in: 0.7...1.5, step: 0.05)
+                    }
+                    Toggle("Show touch controls", isOn: $showTouchControls)
+                }
+
+                Section {
+                    Button("Reset settings") {
+                        lookSensitivity = 0.0022
+                        moveSpeed = 3.2
+                        joystickScale = 1.0
+                        showTouchControls = true
+                    }
                 }
             }
-            .padding(24)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
         }
     }
 }

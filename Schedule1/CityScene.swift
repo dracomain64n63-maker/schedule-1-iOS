@@ -1,4 +1,3 @@
-
 import SwiftUI
 import RealityKit
 import simd
@@ -16,30 +15,31 @@ struct CityScene: View {
 
             let camera = PerspectiveCamera()
             camera.name = "PlayerCamera"
+            camera.camera.fieldOfViewInDegrees = 72
             camera.position = playerPosition
             world.addChild(camera)
 
             let sun = DirectionalLight()
-            sun.light.intensity = 9500
-            sun.orientation = simd_quatf(angle: -.pi / 3.2, axis: [1, 0, 0])
+            sun.light.intensity = 11000
+            sun.orientation = simd_quatf(angle: -.pi / 3.4, axis: [1, 0, 0])
             world.addChild(sun)
 
-            let fill = PointLight()
-            fill.light.intensity = 1800
-            fill.light.attenuationRadius = 32
-            fill.position = [0, 8, 2]
-            world.addChild(fill)
+            let ambient = PointLight()
+            ambient.light.intensity = 2200
+            ambient.light.attenuationRadius = 42
+            ambient.position = [0, 12, 2]
+            world.addChild(ambient)
 
-            buildStreet(in: world)
-            buildBuildings(in: world)
-            buildStreetFurniture(in: world)
+            buildRoad(in: world)
+            buildCity(in: world)
+            buildRV(in: world, position: [-3.0, 0.0, -13.0])
+            buildStreetDetails(in: world)
             buildStarterProperty(in: world)
 
             content.add(world)
         } update: { content in
             guard let world = content.entities.first,
                   let camera = world.findEntity(named: "PlayerCamera") as? PerspectiveCamera else { return }
-
             camera.position = playerPosition
             camera.orientation = simd_quatf(angle: yaw, axis: [0, 1, 0])
                 * simd_quatf(angle: pitch, axis: [1, 0, 0])
@@ -47,173 +47,223 @@ struct CityScene: View {
         .overlay {
             Image(systemName: "plus")
                 .font(.system(size: 17, weight: .light))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.82))
                 .shadow(color: .black, radius: 3)
                 .allowsHitTesting(false)
         }
     }
 
-    private func material(_ color: UIColor, roughness: Float = 0.88, metal: Bool = false) -> SimpleMaterial {
-        SimpleMaterial(
-            color: color,
-            roughness: .float(roughness),
-            isMetallic: metal
-        )
+    private func mat(_ color: UIColor, roughness: Float = 0.82, metal: Bool = false) -> SimpleMaterial {
+        SimpleMaterial(color: color, roughness: .float(roughness), isMetallic: metal)
     }
 
-    private func addBox(
-        _ parent: Entity,
-        name: String = "",
-        position: SIMD3<Float>,
-        size: SIMD3<Float>,
-        color: UIColor,
-        roughness: Float = 0.88,
-        metal: Bool = false
-    ) -> ModelEntity {
-        let entity = ModelEntity(
-            mesh: .generateBox(size: size),
-            materials: [material(color, roughness: roughness, metal: metal)]
-        )
-        entity.position = position
-        entity.name = name
-        parent.addChild(entity)
-        return entity
+    @discardableResult
+    private func box(_ parent: Entity, _ name: String = "", _ p: SIMD3<Float>,
+                     _ s: SIMD3<Float>, _ c: UIColor, rough: Float = 0.82,
+                     metal: Bool = false) -> ModelEntity {
+        let e = ModelEntity(mesh: .generateBox(size: s), materials: [mat(c, roughness: rough, metal: metal)])
+        e.name = name
+        e.position = p
+        parent.addChild(e)
+        return e
     }
 
-    private func buildStreet(in root: Entity) {
-        addBox(root, name: "Asphalt", position: [0, -0.12, -5], size: [34, 0.2, 70], color: UIColor(red: 0.16, green: 0.18, blue: 0.19, alpha: 1), roughness: 1)
-        addBox(root, name: "LeftSidewalk", position: [-8.5, 0.02, -5], size: [3, 0.28, 70], color: UIColor(white: 0.42, alpha: 1))
-        addBox(root, name: "RightSidewalk", position: [8.5, 0.02, -5], size: [3, 0.28, 70], color: UIColor(white: 0.42, alpha: 1))
+    private func cylinder(_ parent: Entity, _ p: SIMD3<Float>, radius: Float, height: Float,
+                          color: UIColor, rotation: simd_quatf = simd_quatf()) {
+        let e = ModelEntity(mesh: .generateCylinder(height: height, radius: radius),
+                            materials: [mat(color, roughness: 0.9)])
+        e.position = p
+        e.orientation = rotation
+        parent.addChild(e)
+    }
 
-        for z in stride(from: 27.0, through: -39.0, by: -6.0) {
-            addBox(root, position: [0, 0.005, Float(z)], size: [0.13, 0.025, 2.8], color: UIColor(red: 0.82, green: 0.79, blue: 0.65, alpha: 1))
+    private func buildRoad(in root: Entity) {
+        box(root, "Road", [0, -0.14, -8], [34, 0.24, 82], UIColor(red: 0.105, green: 0.12, blue: 0.13, alpha: 1), rough: 1)
+        box(root, "LeftWalk", [-9.4, 0.0, -8], [3.0, 0.28, 82], UIColor(red: 0.42, green: 0.42, blue: 0.39, alpha: 1))
+        box(root, "RightWalk", [9.4, 0.0, -8], [3.0, 0.28, 82], UIColor(red: 0.42, green: 0.42, blue: 0.39, alpha: 1))
+        for z in stride(from: 30.0, through: -48.0, by: -6.0) {
+            box(root, "", [0, 0.012, Float(z)], [0.13, 0.025, 2.8], UIColor(red: 0.86, green: 0.82, blue: 0.68, alpha: 1))
         }
-
         for side: Float in [-1, 1] {
-            addBox(root, position: [side * 7.0, 0.03, -5], size: [0.12, 0.04, 70], color: UIColor(white: 0.78, alpha: 1))
+            box(root, "", [side * 7.7, 0.03, -8], [0.12, 0.05, 82], UIColor(white: 0.76, alpha: 1))
+        }
+        // Painted pedestrian crossing.
+        for i in 0..<7 {
+            box(root, "", [-3.6 + Float(i) * 1.2, 0.015, -1.5], [0.72, 0.025, 3.4], UIColor(white: 0.78, alpha: 1))
         }
     }
 
-    private func buildBuildings(in root: Entity) {
-        storefront(root, x: -12, z: -5, width: 7, height: 5.2, depth: 9,
-                   wall: UIColor(red: 0.23, green: 0.29, blue: 0.32, alpha: 1), sign: "LAUNDROMAT",
-                   accent: UIColor(red: 0.55, green: 0.76, blue: 0.78, alpha: 1))
+    private func buildCity(in root: Entity) {
+        storefront(root, x: -12.0, z: -5.0, width: 7.0, height: 5.6, depth: 9.0,
+                   wall: UIColor(red: 0.20, green: 0.27, blue: 0.30, alpha: 1),
+                   sign: "LAUNDROMAT", accent: UIColor(red: 0.32, green: 0.68, blue: 0.72, alpha: 1))
+        storefront(root, x: 12.0, z: -4.0, width: 8.0, height: 6.0, depth: 10.0,
+                   wall: UIColor(red: 0.39, green: 0.20, blue: 0.17, alpha: 1),
+                   sign: "CORNER SHOP", accent: UIColor(red: 0.88, green: 0.30, blue: 0.20, alpha: 1))
 
-        storefront(root, x: 12, z: -4, width: 8, height: 6.2, depth: 10,
-                   wall: UIColor(red: 0.48, green: 0.25, blue: 0.19, alpha: 1), sign: "CORNER SHOP",
-                   accent: UIColor(red: 0.88, green: 0.38, blue: 0.24, alpha: 1))
-
-        apartment(root, x: -13, z: -20, color: UIColor(red: 0.39, green: 0.35, blue: 0.30, alpha: 1), height: 10)
-        apartment(root, x: 13, z: -21, color: UIColor(red: 0.34, green: 0.38, blue: 0.40, alpha: 1), height: 12)
-        apartment(root, x: -13, z: 12, color: UIColor(red: 0.40, green: 0.31, blue: 0.27, alpha: 1), height: 8)
-        apartment(root, x: 13, z: 13, color: UIColor(red: 0.34, green: 0.35, blue: 0.31, alpha: 1), height: 9)
-
-        let rv = Entity()
-        rv.position = [-2.8, 0.15, -13]
-        root.addChild(rv)
-
-        addBox(rv, position: [0, 1.55, 0], size: [3.2, 2.8, 6.2], color: UIColor(red: 0.78, green: 0.79, blue: 0.73, alpha: 1))
-        addBox(rv, position: [0, 0.72, 0], size: [3.24, 0.62, 6.22], color: UIColor(red: 0.12, green: 0.38, blue: 0.20, alpha: 1))
-        addBox(rv, position: [0, 3.0, 0], size: [3.1, 0.12, 6.1], color: UIColor(white: 0.19, alpha: 1))
-
-        for z: Float in [-1.9, -0.35, 1.25] {
-            addBox(rv, position: [1.63, 1.85, z], size: [0.035, 1.15, 0.92], color: UIColor(red: 0.08, green: 0.12, blue: 0.17, alpha: 1), metal: true)
-        }
-
-        addBox(rv, position: [1.67, 1.5, 2.55], size: [0.06, 2.25, 1.15], color: UIColor(red: 0.65, green: 0.12, blue: 0.52, alpha: 1), roughness: 0.25, metal: true)
-
-        for z: Float in [-2.1, 2.1] {
-            let wheel = ModelEntity(
-                mesh: .generateCylinder(height: 0.34, radius: 0.58),
-                materials: [material(UIColor(white: 0.08, alpha: 1), roughness: 0.95)]
-            )
-            wheel.position = [1.63, 0.58, z]
-            wheel.orientation = simd_quatf(angle: .pi / 2, axis: [0, 0, 1])
-            rv.addChild(wheel)
-        }
+        apartment(root, x: -13, z: -22, height: 12, floors: 4,
+                  color: UIColor(red: 0.36, green: 0.32, blue: 0.28, alpha: 1))
+        apartment(root, x: 13, z: -22, height: 14, floors: 5,
+                  color: UIColor(red: 0.31, green: 0.35, blue: 0.37, alpha: 1))
+        apartment(root, x: -13, z: 13, height: 9, floors: 3,
+                  color: UIColor(red: 0.40, green: 0.29, blue: 0.24, alpha: 1))
+        apartment(root, x: 13, z: 14, height: 11, floors: 4,
+                  color: UIColor(red: 0.32, green: 0.34, blue: 0.30, alpha: 1))
+        apartment(root, x: -14, z: -40, height: 16, floors: 6,
+                  color: UIColor(red: 0.34, green: 0.35, blue: 0.36, alpha: 1))
+        apartment(root, x: 14, z: -41, height: 15, floors: 5,
+                  color: UIColor(red: 0.42, green: 0.34, blue: 0.28, alpha: 1))
     }
 
-    private func storefront(
-        _ root: Entity,
-        x: Float,
-        z: Float,
-        width: Float,
-        height: Float,
-        depth: Float,
-        wall: UIColor,
-        sign: String,
-        accent: UIColor
-    ) {
+    private func storefront(_ root: Entity, x: Float, z: Float, width: Float, height: Float,
+                            depth: Float, wall: UIColor, sign: String, accent: UIColor) {
         let shop = Entity()
         shop.position = [x, 0, z]
         root.addChild(shop)
-
-        addBox(shop, position: [0, height / 2, 0], size: [width, height, depth], color: wall)
-        addBox(shop, position: [0, height + 0.18, 0], size: [width + 0.25, 0.25, depth + 0.25], color: UIColor(white: 0.12, alpha: 1))
-        addBox(shop, position: [0, height - 0.65, depth / 2 + 0.04], size: [width - 0.7, 0.75, 0.12], color: accent, roughness: 0.5)
-        addBox(shop, position: [0, 1.8, depth / 2 + 0.08], size: [width - 0.8, 2.0, 0.08], color: UIColor(red: 0.10, green: 0.17, blue: 0.20, alpha: 1), roughness: 0.2, metal: true)
-        addBox(shop, position: [0, 1.8, depth / 2 + 0.14], size: [0.10, 2.05, 0.06], color: UIColor(white: 0.55, alpha: 1), metal: true)
-        addBox(shop, position: [-width * 0.31, 1.8, depth / 2 + 0.14], size: [0.08, 2.05, 0.06], color: UIColor(white: 0.55, alpha: 1), metal: true)
-        addBox(shop, position: [width * 0.31, 1.8, depth / 2 + 0.14], size: [0.08, 2.05, 0.06], color: UIColor(white: 0.55, alpha: 1), metal: true)
-
-        addBox(shop, position: [0, height + 0.65, depth / 2 + 0.16], size: [width - 0.5, 0.58, 0.12], color: UIColor(white: 0.08, alpha: 1))
-
-        let barCount = max(5, min(12, sign.count))
-        for i in 0..<barCount {
-            let px = -width * 0.34 + Float(i) * (width * 0.68 / Float(max(1, barCount - 1)))
-            addBox(shop, position: [px, height + 0.66, depth / 2 + 0.24], size: [0.12, 0.24, 0.035], color: accent, roughness: 0.35)
+        box(shop, "ShopBody", [0, height / 2, 0], [width, height, depth], wall)
+        box(shop, "", [0, height + 0.18, 0], [width + 0.25, 0.30, depth + 0.25], UIColor(white: 0.10, alpha: 1))
+        // Dark shopfront glazing and metal mullions.
+        box(shop, "", [0, 1.85, depth / 2 + 0.07], [width - 0.55, 2.35, 0.09],
+            UIColor(red: 0.055, green: 0.105, blue: 0.13, alpha: 1), rough: 0.2, metal: true)
+        for px in [-width * 0.28, 0, width * 0.28] {
+            box(shop, "", [px, 1.85, depth / 2 + 0.14], [0.075, 2.38, 0.08], UIColor(white: 0.56, alpha: 1), metal: true)
         }
+        box(shop, "", [0, height - 0.42, depth / 2 + 0.12], [width - 0.25, 0.75, 0.16], accent, rough: 0.45)
+        box(shop, "", [0, height + 0.72, depth / 2 + 0.15], [width - 0.35, 0.72, 0.14], UIColor(white: 0.055, alpha: 1))
+        add3DText(sign, parent: shop, position: [-width * 0.38, height + 0.52, depth / 2 + 0.24],
+                  size: 0.34, color: .white)
+        // Door handle and entry frame.
+        box(shop, "", [width * 0.31, 1.55, depth / 2 + 0.20], [0.045, 0.55, 0.045], UIColor(white: 0.8, alpha: 1), metal: true)
     }
 
-    private func apartment(_ root: Entity, x: Float, z: Float, color: UIColor, height: Float) {
-        let building = Entity()
-        building.position = [x, 0, z]
-        root.addChild(building)
-
-        addBox(building, position: [0, height / 2, 0], size: [7.2, height, 8.5], color: color)
-        addBox(building, position: [0, height + 0.15, 0], size: [7.5, 0.3, 8.8], color: UIColor(white: 0.16, alpha: 1))
-
-        let floors = max(2, Int(height / 2.4))
+    private func apartment(_ root: Entity, x: Float, z: Float, height: Float, floors: Int, color: UIColor) {
+        let b = Entity()
+        b.position = [x, 0, z]
+        root.addChild(b)
+        box(b, "", [0, height / 2, 0], [7.4, height, 8.5], color)
+        box(b, "", [0, height + 0.16, 0], [7.7, 0.32, 8.8], UIColor(white: 0.13, alpha: 1))
         for floor in 0..<floors {
-            let y = 1.5 + Float(floor) * 2.25
-
+            let y = 1.45 + Float(floor) * (height / Float(floors))
             for col in 0..<3 {
-                let px = -2.2 + Float(col) * 2.2
-                addBox(building, position: [px, y, 4.28], size: [1.05, 1.15, 0.09], color: UIColor(red: 0.10, green: 0.16, blue: 0.20, alpha: 1), roughness: 0.2, metal: true)
-                addBox(building, position: [px, y, 4.34], size: [1.12, 0.07, 0.08], color: UIColor(white: 0.62, alpha: 1))
+                let xw = -2.25 + Float(col) * 2.25
+                box(b, "", [xw, y, 4.30], [1.12, 1.28, 0.10],
+                    UIColor(red: 0.055, green: 0.10, blue: 0.13, alpha: 1), rough: 0.18, metal: true)
+                box(b, "", [xw, y, 4.37], [1.16, 0.055, 0.07], UIColor(white: 0.64, alpha: 1), metal: true)
+                box(b, "", [xw, y - 0.68, 4.38], [1.20, 0.06, 0.30], UIColor(white: 0.24, alpha: 1), metal: true)
             }
+        }
+        // Side wall windows make buildings read from oblique angles.
+        for floor in 0..<floors {
+            let y = 1.45 + Float(floor) * (height / Float(floors))
+            box(b, "", [3.74, y, -1.9], [0.10, 1.05, 1.0],
+                UIColor(red: 0.06, green: 0.11, blue: 0.14, alpha: 1), rough: 0.2, metal: true)
         }
     }
 
-    private func buildStreetFurniture(in root: Entity) {
-        for z: Float in [-25, -8, 9, 25] {
-            for x: Float in [-8.9, 8.9] {
-                addBox(root, position: [x, 2.7, z], size: [0.12, 5.4, 0.12], color: UIColor(white: 0.12, alpha: 1), metal: true)
-                addBox(root, position: [x, 5.35, z], size: [0.75, 0.18, 0.75], color: UIColor(red: 0.85, green: 0.72, blue: 0.48, alpha: 1), roughness: 0.35)
-            }
+    private func buildRV(in root: Entity, position: SIMD3<Float>) {
+        let rv = Entity()
+        rv.name = "GreenWhiteRV"
+        rv.position = position
+        root.addChild(rv)
+
+        let cream = UIColor(red: 0.82, green: 0.82, blue: 0.75, alpha: 1)
+        let green = UIColor(red: 0.075, green: 0.31, blue: 0.16, alpha: 1)
+        let glass = UIColor(red: 0.035, green: 0.065, blue: 0.09, alpha: 1)
+
+        // Main coach body, raised roof cap, and lower green belt.
+        box(rv, "RVBody", [0, 1.65, 0], [3.35, 2.85, 6.6], cream)
+        box(rv, "", [0, 3.10, 0], [3.22, 0.16, 6.42], UIColor(white: 0.17, alpha: 1))
+        box(rv, "", [0, 0.78, 0], [3.40, 0.72, 6.62], green)
+        box(rv, "", [0, 1.12, 0], [3.42, 0.12, 6.64], UIColor(red: 0.91, green: 0.90, blue: 0.81, alpha: 1))
+
+        // Side windows and frames.
+        for z: Float in [-2.15, -0.75, 0.75] {
+            box(rv, "", [1.70, 2.08, z], [0.07, 1.05, 1.02], UIColor(white: 0.12, alpha: 1), metal: true)
+            box(rv, "", [1.75, 2.08, z], [0.035, 0.88, 0.85], glass, rough: 0.12, metal: true)
         }
 
-        for z: Float in [-17, 2, 20] {
-            addBox(root, position: [-7.2, 1.4, z], size: [0.35, 2.8, 0.35], color: UIColor(red: 0.28, green: 0.19, blue: 0.12, alpha: 1))
+        // Sliding entrance, lit doorway, and visible interior floor.
+        box(rv, "", [1.73, 1.60, 2.45], [0.09, 2.42, 1.30], UIColor(white: 0.12, alpha: 1), metal: true)
+        box(rv, "", [1.79, 1.60, 2.45], [0.035, 2.26, 1.14],
+            UIColor(red: 0.48, green: 0.045, blue: 0.36, alpha: 1), rough: 0.22, metal: true)
+        box(rv, "", [1.22, 0.52, 2.48], [0.88, 0.08, 1.12], UIColor(red: 0.20, green: 0.13, blue: 0.18, alpha: 1))
+        box(rv, "", [0.65, 1.55, 2.35], [0.06, 2.20, 0.10], UIColor(white: 0.36, alpha: 1), metal: true)
 
-            let leaves = ModelEntity(
-                mesh: .generateCone(height: 3.2, radius: 1.25),
-                materials: [material(UIColor(red: 0.12, green: 0.34, blue: 0.20, alpha: 1))]
-            )
-            leaves.position = [-7.2, 3.5, z]
-            root.addChild(leaves)
+        // Pink interior lighting.
+        let pink = PointLight()
+        pink.light.color = UIColor(red: 1.0, green: 0.08, blue: 0.62, alpha: 1)
+        pink.light.intensity = 1800
+        pink.light.attenuationRadius = 5
+        pink.position = [0.45, 2.25, 2.1]
+        rv.addChild(pink)
+
+        // Wheels, tires, and metallic hubs.
+        for z: Float in [-2.05, 2.05] {
+            cylinder(rv, [1.68, 0.58, z], radius: 0.58, height: 0.34,
+                     color: UIColor(white: 0.055, alpha: 1),
+                     rotation: simd_quatf(angle: .pi / 2, axis: [0, 0, 1]))
+            cylinder(rv, [1.88, 0.58, z], radius: 0.27, height: 0.36,
+                     color: UIColor(white: 0.42, alpha: 1),
+                     rotation: simd_quatf(angle: .pi / 2, axis: [0, 0, 1]))
+        }
+
+        // Front windshield, rear lights, mirrors, and entry steps.
+        box(rv, "", [0, 2.20, -3.33], [2.55, 1.12, 0.06], glass, rough: 0.16, metal: true)
+        for x: Float in [-1.25, 1.25] {
+            box(rv, "", [x, 1.0, -3.38], [0.22, 0.42, 0.07], UIColor(red: 0.72, green: 0.08, blue: 0.055, alpha: 1))
+        }
+        box(rv, "", [1.85, 2.0, -2.8], [0.38, 0.12, 0.32], UIColor(white: 0.16, alpha: 1), metal: true)
+        for step in 0..<3 {
+            box(rv, "", [1.45, 0.22 + Float(step) * 0.25, 2.62 + Float(step) * 0.42],
+                [1.35, 0.12, 0.62], UIColor(white: 0.22 + Float(step) * 0.06, alpha: 1), metal: true)
+        }
+        // Roof vents.
+        box(rv, "", [0, 3.23, -1.4], [0.72, 0.12, 0.65], UIColor(white: 0.24, alpha: 1), metal: true)
+    }
+
+    private func add3DText(_ text: String, parent: Entity, position: SIMD3<Float>, size: Float, color: UIColor) {
+        let mesh = MeshResource.generateText(text, extrusionDepth: 0.012,
+                                             font: .systemFont(ofSize: CGFloat(size), weight: .bold),
+                                             containerFrame: .zero, alignment: .center, lineBreakMode: .byClipping)
+        let e = ModelEntity(mesh: mesh, materials: [mat(color, roughness: 0.7)])
+        e.position = position
+        parent.addChild(e)
+    }
+
+    private func buildStreetDetails(in root: Entity) {
+        for z: Float in [-27, -8, 11, 29] {
+            for x: Float in [-8.4, 8.4] {
+                cylinder(root, [x, 2.5, z], radius: 0.075, height: 5.0,
+                         color: UIColor(white: 0.13, alpha: 1))
+                box(root, "", [x, 5.05, z], [0.70, 0.18, 0.70],
+                    UIColor(red: 0.92, green: 0.78, blue: 0.52, alpha: 1), rough: 0.4)
+            }
+        }
+        for z: Float in [-19, 1, 21] {
+            cylinder(root, [-7.4, 1.0, z], radius: 0.16, height: 2.0,
+                     color: UIColor(red: 0.25, green: 0.16, blue: 0.10, alpha: 1))
+            let crown = ModelEntity(mesh: .generateCone(height: 3.1, radius: 1.15),
+                                    materials: [mat(UIColor(red: 0.10, green: 0.30, blue: 0.17, alpha: 1))])
+            crown.position = [-7.4, 3.15, z]
+            root.addChild(crown)
+        }
+        // Utility boxes and bins along sidewalks.
+        for z: Float in [-12, 16] {
+            box(root, "", [7.9, 0.65, z], [0.78, 1.25, 0.78],
+                UIColor(red: 0.12, green: 0.34, blue: 0.22, alpha: 1))
         }
     }
 
     private func buildStarterProperty(in root: Entity) {
-        let property = Entity()
-        property.name = "StarterProperty"
-        property.position = [0, 0, -30]
-        root.addChild(property)
-
-        addBox(property, position: [0, 1.7, 0], size: [8.5, 3.4, 7], color: UIColor(red: 0.34, green: 0.38, blue: 0.35, alpha: 1))
-        addBox(property, position: [0, 3.55, 0], size: [8.9, 0.3, 7.4], color: UIColor(white: 0.13, alpha: 1))
-        addBox(property, position: [0, 1.45, 3.56], size: [1.5, 2.9, 0.12], color: UIColor(red: 0.12, green: 0.20, blue: 0.22, alpha: 1), roughness: 0.25, metal: true)
-        addBox(property, position: [-2.4, 2.0, 3.56], size: [1.4, 1.4, 0.12], color: UIColor(red: 0.10, green: 0.16, blue: 0.18, alpha: 1), roughness: 0.2, metal: true)
+        let p = Entity()
+        p.name = "StarterProperty"
+        p.position = [0, 0, -34]
+        root.addChild(p)
+        box(p, "", [0, 1.7, 0], [8.5, 3.4, 7], UIColor(red: 0.31, green: 0.36, blue: 0.32, alpha: 1))
+        box(p, "", [0, 3.55, 0], [8.9, 0.30, 7.4], UIColor(white: 0.12, alpha: 1))
+        box(p, "", [0, 1.45, 3.56], [1.5, 2.9, 0.12],
+            UIColor(red: 0.08, green: 0.15, blue: 0.17, alpha: 1), rough: 0.2, metal: true)
+        box(p, "", [-2.4, 2.0, 3.56], [1.4, 1.4, 0.12],
+            UIColor(red: 0.06, green: 0.12, blue: 0.14, alpha: 1), rough: 0.2, metal: true)
     }
 }
