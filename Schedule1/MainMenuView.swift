@@ -1,14 +1,16 @@
 import SwiftUI
 
 struct MainMenuView: View {
-    @State private var showGame = false
-    @State private var showSettings = false
+    var onPlay: () -> Void
+    var onSettings: () -> Void
 
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(red: 0.035, green: 0.045, blue: 0.055),
-                         Color(red: 0.12, green: 0.14, blue: 0.15)],
+                colors: [
+                    Color(red: 0.07, green: 0.08, blue: 0.07),
+                    Color(red: 0.015, green: 0.02, blue: 0.02)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -17,68 +19,75 @@ struct MainMenuView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer()
 
-                Text("SCHEDULE 1")
-                    .font(.system(size: 42, weight: .black, design: .rounded))
+                Text("SCHEDULE")
+                    .font(.system(size: 58, weight: .black, design: .default))
                     .tracking(3)
+                    .foregroundColor(.white)
 
-                Text("BUILD YOUR BUSINESS")
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .tracking(3)
-                    .foregroundStyle(.white.opacity(0.62))
+                Text("1")
+                    .font(.system(size: 58, weight: .black))
+                    .foregroundColor(.green)
+
+                Text("YOUR CITY. YOUR RULES.")
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(4)
+                    .foregroundColor(.white.opacity(0.55))
                     .padding(.top, 8)
 
                 Spacer()
 
-                VStack(spacing: 12) {
-                    menuButton("PLAY") { showGame = true }
-                    menuButton("SETTINGS") { showSettings = true }
+                VStack(alignment: .leading, spacing: 14) {
+                    menuButton("PLAY", action: onPlay)
+
+                    menuButton("SETTINGS", action: onSettings)
+
+                    Text("VERSION 1.0")
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(2)
+                        .foregroundColor(.white.opacity(0.35))
+                        .padding(.top, 20)
                 }
-                .padding(.bottom, 46)
+
+                Spacer()
+                    .frame(height: 35)
             }
-            .padding(.horizontal, 28)
+            .padding(.horizontal, 35)
+            .padding(.vertical, 30)
         }
-        .fullScreenCover(isPresented: $showGame) {
-            GameView()
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-                .presentationDetents([.medium])
-        }
+        .preferredColorScheme(.dark)
     }
 
-    private func menuButton(_ title: String, action: @escaping () -> Void) -> some View {
+    private func menuButton(
+        _ title: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .tracking(2)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 17)
-                .background(.white.opacity(title == "PLAY" ? 0.18 : 0.08))
-                .overlay(Rectangle().stroke(.white.opacity(0.22), lineWidth: 1))
+            HStack {
+                Text(title)
+                    .font(.system(size: 16, weight: .bold))
+                    .tracking(2)
+
+                Spacer()
+
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .frame(height: 58)
+            .background(Color.white.opacity(0.08))
+            .overlay(
+                Rectangle()
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
 }
 
-private struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Prototype settings")
-                    .font(.headline)
-                Text("Difficulty and control customization are not implemented in this prototype.")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
+#Preview {
+    MainMenuView(
+        onPlay: {},
+        onSettings: {}
+    )
 }
