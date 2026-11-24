@@ -20,6 +20,8 @@ jobs:
 
       - name: Build unsigned iOS app
         run: |
+          set -e
+
           xcodebuild \
             -project Schedule1.xcodeproj \
             -scheme Schedule1 \
@@ -28,13 +30,12 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
-            GENERATE_INFOPLIST_FILE=YES \
             build
 
-      - name: Fix app metadata
+      - name: Fix and verify app metadata
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Schedule1.app"
           PLIST="$APP_PATH/Info.plist"
@@ -44,14 +45,14 @@ jobs:
           test -f "$APP_PATH/Schedule1"
 
           set_or_add() {
-            KEY="$1"
-            VALUE="$2"
+            local key="$1"
+            local value="$2"
 
-            if /usr/libexec/PlistBuddy -c "Set :$KEY $VALUE" "$PLIST" 2>/dev/null; then
-              echo "Updated $KEY"
+            if /usr/libexec/PlistBuddy -c "Set :$key $value" "$PLIST" 2>/dev/null; then
+              echo "Updated $key"
             else
-              /usr/libexec/PlistBuddy -c "Add :$KEY string $VALUE" "$PLIST"
-              echo "Added $KEY"
+              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST"
+              echo "Added $key"
             fi
           }
 
@@ -61,13 +62,19 @@ jobs:
           set_or_add CFBundleVersion 1
           set_or_add CFBundleShortVersionString 1.0
           set_or_add CFBundleName Schedule1
+          set_or_add CFBundleDisplayName "Schedule 1"
 
-          echo "Verifying metadata..."
-          /usr/libexec/PlistBuddy -c "Print" "$PLIST"
+          echo "Verifying app metadata..."
+
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
 
       - name: Package unsigned IPA
         run: |
-          set -e
+          set -euo pipefail
 
           APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Schedule1.app"
 
@@ -75,7 +82,9 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
 
           cd build
-          zip -r Schedule1-unsigned.ipa Payload
+
+          zip -qry Schedule1-unsigned.ipa Payload
+          unzip -t Schedule1-unsigned.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
