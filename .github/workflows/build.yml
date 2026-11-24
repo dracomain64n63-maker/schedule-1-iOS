@@ -1,3 +1,4 @@
+
 name: Build Schedule 1 iOS
 
 on:
@@ -7,37 +8,41 @@ on:
       - main
 
 jobs:
-  build-ios:
-    runs-on: [self-hosted, macOS]
+  build:
+    name: Build iOS Simulator App
+    runs-on: macos-15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify Unreal Engine
+      - name: Check Xcode
         run: |
-          if [ ! -f "$UE_ROOT/Engine/Build/BatchFiles/RunUAT.sh" ]; then
-            echo "Unreal Engine was not found."
-            exit 1
-          fi
+          xcodebuild -version
+          xcodebuild -showsdks
 
-      - name: Build and package iOS
+      - name: Build Schedule 1
         run: |
-          "$UE_ROOT/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun \
-            -project="$GITHUB_WORKSPACE/Schedule1.uproject" \
-            -platform=IOS \
-            -clientconfig=Shipping \
-            -build \
-            -cook \
-            -stage \
-            -pak \
-            -package \
-            -archive \
-            -archivedirectory="$GITHUB_WORKSPACE/BuildOutput"
+          xcodebuild \
+            -project Schedule1.xcodeproj \
+            -scheme Schedule1 \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package app
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Debug-iphonesimulator/Schedule1.app"
+          test -d "$APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$APP_PATH" Schedule1-iOS-Simulator.zip
 
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: Schedule1-iOS-Build
-          path: BuildOutput/
+          name: Schedule1-iOS-Simulator
+          path: Schedule1-iOS-Simulator.zip
           if-no-files-found: error
