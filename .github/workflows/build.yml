@@ -1,5 +1,5 @@
 
-name: Build Schedule 1 iOS
+name: Build Schedule 1 IPA
 
 on:
   workflow_dispatch:
@@ -9,40 +9,98 @@ on:
 
 jobs:
   build:
-    name: Build iOS Simulator App
     runs-on: macos-15
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check Xcode
+      - name: Install signing certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         run: |
-          xcodebuild -version
-          xcodebuild -showsdks
+          echo "$CERTIFICATE_BASE64" | base64 --decode > certificate.p12
 
-      - name: Build Schedule 1
+          security create-keychain -p buildpassword build.keychain
+          security unlock-keychain -p buildpassword build.keychain
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+
+          security set-keychain-settings -t 3600 -u build.keychain
+          security list-keychains -d user -s build.keychain
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k buildpassword build.keychain
+
+      - name: Install provisioning profile
+        env:
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: |
-          xcodebuild \
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 --decode > profile.mobileprovision
+
+          security cms -D -i profile.mobileprovision > profile.plist
+
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" profile.plist)
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" profile.plist)
+
+          cp profile.mobileprovision \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+
+      - name: Archive iOS app
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          xcodebuild archive \
             -project Schedule1.xcodeproj \
             -scheme Schedule1 \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Schedule1.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PRODUCT_BUNDLE_IDENTIFIER=com.example.schedule1
 
-      - name: Package app
+      - name: Export IPA
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
-          APP_PATH="build/DerivedData/Build/Products/Debug-iphonesimulator/Schedule1.app"
-          test -d "$APP_PATH"
-          ditto -c -k --sequesterRsrc --keepParent \
-            "$APP_PATH" Schedule1-iOS-Simulator.zip
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.example.schedule1</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
 
-      - name: Upload build
+          xcodebuild -exportArchive \
+            -archivePath build/Schedule1.xcarchive \
+            -exportPath build/IPA \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Schedule1-iOS-Simulator
-          path: Schedule1-iOS-Simulator.zip
+          name: Schedule1-IPA
+          path: build/IPA/*.ipa
           if-no-files-found: error
