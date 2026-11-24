@@ -1,0 +1,114 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* Schedule1App.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* Schedule1App.swift */; };
+		A10000000000000000000002 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* MainMenuView.swift */; };
+		A10000000000000000000003 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* GameView.swift */; };
+		A10000000000000000000004 /* CityScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* CityScene.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* Schedule1App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule1App.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* CityScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityScene.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C10000000000000000000001 /* Schedule1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Schedule1.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (E10000000000000000000001 /* Schedule1 */, C10000000000000000000001 /* Schedule1.app */);
+			sourceTree = "<group>";
+		};
+		E10000000000000000000001 /* Schedule1 */ = {
+			isa = PBXGroup;
+			children = (B10000000000000000000001, B10000000000000000000002, B10000000000000000000003, B10000000000000000000004, B10000000000000000000005);
+			path = Schedule1;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F10000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		110000000000000000000001 /* Schedule1 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 210000000000000000000001;
+			buildPhases = (F10000000000000000000001);
+			buildRules = ();
+			dependencies = ();
+			name = Schedule1;
+			productName = Schedule1;
+			productReference = C10000000000000000000001;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		120000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {LastUpgradeCheck = 1600; TargetAttributes = {110000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; }; };
+			buildConfigurationList = 220000000000000000000001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000001;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (110000000000000000000001);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		310000000000000000000001 /* Project Debug */ = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 18.0; SWIFT_VERSION = 5.0; }; name = Debug; };
+		310000000000000000000002 /* Project Release */ = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 18.0; SWIFT_VERSION = 5.0; }; name = Release; };
+		320000000000000000000001 /* Target Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = NO;
+			INFOPLIST_FILE = Schedule1/Info.plist;
+			PRODUCT_BUNDLE_IDENTIFIER = com.example.schedule1;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+		}; name = Debug; };
+		320000000000000000000002 /* Target Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = NO;
+			INFOPLIST_FILE = Schedule1/Info.plist;
+			PRODUCT_BUNDLE_IDENTIFIER = com.example.schedule1;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+		}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		210000000000000000000001 /* Target Configuration List */ = {isa = XCConfigurationList; buildConfigurations = (320000000000000000000001, 320000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		220000000000000000000001 /* Project Configuration List */ = {isa = XCConfigurationList; buildConfigurations = (310000000000000000000001, 310000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = 120000000000000000000001 /* Project object */;
+}
